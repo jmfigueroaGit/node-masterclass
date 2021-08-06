@@ -4,9 +4,9 @@ const sendEmail = require('../utils/sendEmail');
 const asyncHandler = require('../middleware/async');
 const crypto = require('crypto');
 
-// @desc Register user
-// @route POST /api/v1/auth/register
-// @access Public
+// @desc 	Register user
+// @route 	POST /api/v1/auth/register
+// @access 	Public
 exports.register = asyncHandler(async (req, res, next) => {
 	const { name, email, password, role } = req.body;
 
@@ -21,9 +21,9 @@ exports.register = asyncHandler(async (req, res, next) => {
 	sendTokenResponse(user, 200, res);
 });
 
-// @desc Login user
-// @route POST /api/v1/auth/login
-// @access Public
+// @desc 	Login user
+// @route 	POST /api/v1/auth/login
+// @access 	Public
 exports.login = asyncHandler(async (req, res, next) => {
 	const { email, password } = req.body;
 
@@ -49,9 +49,9 @@ exports.login = asyncHandler(async (req, res, next) => {
 	sendTokenResponse(user, 200, res);
 });
 
-// @desc Get current logged in user
-// @route POST /api/v1/auth/me
-// @access Private
+// @desc 	Get current logged in user
+// @route 	POST /api/v1/auth/me
+// @access 	Private
 exports.getMe = asyncHandler(async (req, res, next) => {
 	const user = await User.findById(req.user.id);
 
@@ -61,9 +61,46 @@ exports.getMe = asyncHandler(async (req, res, next) => {
 	});
 });
 
-// @desc Forgot Password
-// @route POST /api/v1/auth/forgotPassword
-// @access Public
+// @desc 	Update user details
+// @route 	PUT /api/v1/auth/details
+// @access 	Private
+exports.updateDetails = asyncHandler(async (req, res, next) => {
+	const fieldsToUpdate = {
+		name: req.body.name,
+		email: req.body.email,
+	};
+
+	const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+		new: true,
+		runValidators: true,
+	});
+
+	res.status(200).json({
+		success: true,
+		data: user,
+	});
+});
+
+// @desc 	Update password
+// @route 	PUT /api/v1/auth/updatepassword
+// @access 	Private
+exports.updatePassword = asyncHandler(async (req, res, next) => {
+	const user = await User.findById(req.user.id).select('+password');
+
+	// Check current password
+	if (!(await user.matchPassword(req.body.currentPassword))) {
+		return next(new ErrorResponse('Password is incorrect', 401));
+	}
+
+	user.password = req.body.newPassword;
+	await user.save();
+
+	sendTokenResponse(user, 200, res);
+});
+
+// @desc 	Forgot Password
+// @route 	POST /api/v1/auth/forgotPassword
+// @access 	Public
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
 	const user = await User.findOne({ email: req.body.email });
 
